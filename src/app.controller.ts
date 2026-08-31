@@ -7,11 +7,15 @@ import {
 } from '@nestjs/microservices';
 
 import { RabbitmqPublisherService } from './rabbitmq/rabbitmq-publisher.service.js';
+import { EventEnvelope } from './events/event-envelope.js';
 
 type InventoryReservedEvent = {
   orderId: string;
   quantity: number;
 };
+
+type InventoryReservedEnvelope =
+  EventEnvelope<InventoryReservedEvent>;
 
 @Controller()
 export class AppController {
@@ -22,7 +26,7 @@ export class AppController {
 
   @EventPattern('inventory.reserved')
   handleInventoryReserved(
-    @Payload() inventory: InventoryReservedEvent,
+    @Payload() inventory: InventoryReservedEnvelope,
     @Ctx() context: any,
   ) {
     const rmqContext =
@@ -42,7 +46,7 @@ export class AppController {
       console.log(inventory);
 
       const paymentApproved =
-        inventory.quantity <= 2;
+        inventory.data.quantity <= 2;
 
       if (paymentApproved) {
         console.log(
@@ -52,7 +56,7 @@ export class AppController {
         this.rabbitmqPublisher.publish(
           'payment.completed',
           {
-            orderId: inventory.orderId,
+            orderId: inventory.data.orderId,
           },
         );
       } else {
@@ -63,7 +67,7 @@ export class AppController {
         this.rabbitmqPublisher.publish(
           'payment.failed',
           {
-            orderId: inventory.orderId,
+            orderId: inventory.data.orderId,
             reason: 'PAYMENT_REJECTED',
           },
         );

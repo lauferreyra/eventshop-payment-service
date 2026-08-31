@@ -4,8 +4,13 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 
+import { randomUUID } from 'crypto';
+
 import * as amqp from 'amqplib';
-import { Channel, ChannelModel } from 'amqplib';
+import {
+  Channel,
+  ChannelModel,
+} from 'amqplib';
 
 @Injectable()
 export class RabbitmqPublisherService
@@ -14,14 +19,16 @@ export class RabbitmqPublisherService
   private connection: ChannelModel;
   private channel: Channel;
 
-  private readonly exchange = 'eventshop.events';
+  private readonly exchange =
+    'eventshop.events';
 
   async onModuleInit() {
     this.connection = await amqp.connect(
       'amqp://admin:admin@localhost:5672',
     );
 
-    this.channel = await this.connection.createChannel();
+    this.channel =
+      await this.connection.createChannel();
 
     await this.channel.assertExchange(
       this.exchange,
@@ -37,23 +44,39 @@ export class RabbitmqPublisherService
   }
 
   publish<T>(
-    routingKey: string,
-    payload: T,
+    eventType: string,
+    data: T,
   ) {
+    console.log(
+      '📤 Payment publicando:',
+      eventType,
+      data,
+    );
+
+    const event = {
+      eventId: randomUUID(),
+      eventType,
+      version: 1,
+      occurredAt:
+        new Date().toISOString(),
+      data,
+    };
+
     const message = Buffer.from(
       JSON.stringify({
-        pattern: routingKey,
-        data: payload,
+        pattern: eventType,
+        data: event,
       }),
     );
 
     this.channel.publish(
       this.exchange,
-      routingKey,
+      eventType,
       message,
       {
         persistent: true,
-        contentType: 'application/json',
+        contentType:
+          'application/json',
       },
     );
   }
