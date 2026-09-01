@@ -20,14 +20,28 @@ export type OutboxEventModel = runtime.Types.Result.DefaultSelection<Prisma.$Out
 
 export type AggregateOutboxEvent = {
   _count: OutboxEventCountAggregateOutputType | null
+  _avg: OutboxEventAvgAggregateOutputType | null
+  _sum: OutboxEventSumAggregateOutputType | null
   _min: OutboxEventMinAggregateOutputType | null
   _max: OutboxEventMaxAggregateOutputType | null
+}
+
+export type OutboxEventAvgAggregateOutputType = {
+  retryCount: number | null
+}
+
+export type OutboxEventSumAggregateOutputType = {
+  retryCount: number | null
 }
 
 export type OutboxEventMinAggregateOutputType = {
   id: string | null
   eventId: string | null
   eventType: string | null
+  status: $Enums.OutboxStatus | null
+  processingAt: Date | null
+  retryCount: number | null
+  lastError: string | null
   createdAt: Date | null
   publishedAt: Date | null
 }
@@ -36,6 +50,10 @@ export type OutboxEventMaxAggregateOutputType = {
   id: string | null
   eventId: string | null
   eventType: string | null
+  status: $Enums.OutboxStatus | null
+  processingAt: Date | null
+  retryCount: number | null
+  lastError: string | null
   createdAt: Date | null
   publishedAt: Date | null
 }
@@ -45,16 +63,32 @@ export type OutboxEventCountAggregateOutputType = {
   eventId: number
   eventType: number
   payload: number
+  status: number
+  processingAt: number
+  retryCount: number
+  lastError: number
   createdAt: number
   publishedAt: number
   _all: number
 }
 
 
+export type OutboxEventAvgAggregateInputType = {
+  retryCount?: true
+}
+
+export type OutboxEventSumAggregateInputType = {
+  retryCount?: true
+}
+
 export type OutboxEventMinAggregateInputType = {
   id?: true
   eventId?: true
   eventType?: true
+  status?: true
+  processingAt?: true
+  retryCount?: true
+  lastError?: true
   createdAt?: true
   publishedAt?: true
 }
@@ -63,6 +97,10 @@ export type OutboxEventMaxAggregateInputType = {
   id?: true
   eventId?: true
   eventType?: true
+  status?: true
+  processingAt?: true
+  retryCount?: true
+  lastError?: true
   createdAt?: true
   publishedAt?: true
 }
@@ -72,6 +110,10 @@ export type OutboxEventCountAggregateInputType = {
   eventId?: true
   eventType?: true
   payload?: true
+  status?: true
+  processingAt?: true
+  retryCount?: true
+  lastError?: true
   createdAt?: true
   publishedAt?: true
   _all?: true
@@ -115,6 +157,18 @@ export type OutboxEventAggregateArgs<ExtArgs extends runtime.Types.Extensions.In
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: OutboxEventAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: OutboxEventSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: OutboxEventMinAggregateInputType
@@ -145,6 +199,8 @@ export type OutboxEventGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inte
   take?: number
   skip?: number
   _count?: OutboxEventCountAggregateInputType | true
+  _avg?: OutboxEventAvgAggregateInputType
+  _sum?: OutboxEventSumAggregateInputType
   _min?: OutboxEventMinAggregateInputType
   _max?: OutboxEventMaxAggregateInputType
 }
@@ -154,9 +210,15 @@ export type OutboxEventGroupByOutputType = {
   eventId: string
   eventType: string
   payload: runtime.JsonValue
+  status: $Enums.OutboxStatus
+  processingAt: Date | null
+  retryCount: number
+  lastError: string | null
   createdAt: Date
   publishedAt: Date | null
   _count: OutboxEventCountAggregateOutputType | null
+  _avg: OutboxEventAvgAggregateOutputType | null
+  _sum: OutboxEventSumAggregateOutputType | null
   _min: OutboxEventMinAggregateOutputType | null
   _max: OutboxEventMaxAggregateOutputType | null
 }
@@ -184,6 +246,10 @@ export type OutboxEventWhereInput = {
   eventId?: Prisma.StringFilter<"OutboxEvent"> | string
   eventType?: Prisma.StringFilter<"OutboxEvent"> | string
   payload?: Prisma.JsonFilter<"OutboxEvent">
+  status?: Prisma.EnumOutboxStatusFilter<"OutboxEvent"> | $Enums.OutboxStatus
+  processingAt?: Prisma.DateTimeNullableFilter<"OutboxEvent"> | Date | string | null
+  retryCount?: Prisma.IntFilter<"OutboxEvent"> | number
+  lastError?: Prisma.StringNullableFilter<"OutboxEvent"> | string | null
   createdAt?: Prisma.DateTimeFilter<"OutboxEvent"> | Date | string
   publishedAt?: Prisma.DateTimeNullableFilter<"OutboxEvent"> | Date | string | null
 }
@@ -193,6 +259,10 @@ export type OutboxEventOrderByWithRelationInput = {
   eventId?: Prisma.SortOrder
   eventType?: Prisma.SortOrder
   payload?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  processingAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  retryCount?: Prisma.SortOrder
+  lastError?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
 }
@@ -205,6 +275,10 @@ export type OutboxEventWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.OutboxEventWhereInput | Prisma.OutboxEventWhereInput[]
   eventType?: Prisma.StringFilter<"OutboxEvent"> | string
   payload?: Prisma.JsonFilter<"OutboxEvent">
+  status?: Prisma.EnumOutboxStatusFilter<"OutboxEvent"> | $Enums.OutboxStatus
+  processingAt?: Prisma.DateTimeNullableFilter<"OutboxEvent"> | Date | string | null
+  retryCount?: Prisma.IntFilter<"OutboxEvent"> | number
+  lastError?: Prisma.StringNullableFilter<"OutboxEvent"> | string | null
   createdAt?: Prisma.DateTimeFilter<"OutboxEvent"> | Date | string
   publishedAt?: Prisma.DateTimeNullableFilter<"OutboxEvent"> | Date | string | null
 }, "id" | "eventId">
@@ -214,11 +288,17 @@ export type OutboxEventOrderByWithAggregationInput = {
   eventId?: Prisma.SortOrder
   eventType?: Prisma.SortOrder
   payload?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  processingAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  retryCount?: Prisma.SortOrder
+  lastError?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.OutboxEventCountOrderByAggregateInput
+  _avg?: Prisma.OutboxEventAvgOrderByAggregateInput
   _max?: Prisma.OutboxEventMaxOrderByAggregateInput
   _min?: Prisma.OutboxEventMinOrderByAggregateInput
+  _sum?: Prisma.OutboxEventSumOrderByAggregateInput
 }
 
 export type OutboxEventScalarWhereWithAggregatesInput = {
@@ -229,6 +309,10 @@ export type OutboxEventScalarWhereWithAggregatesInput = {
   eventId?: Prisma.StringWithAggregatesFilter<"OutboxEvent"> | string
   eventType?: Prisma.StringWithAggregatesFilter<"OutboxEvent"> | string
   payload?: Prisma.JsonWithAggregatesFilter<"OutboxEvent">
+  status?: Prisma.EnumOutboxStatusWithAggregatesFilter<"OutboxEvent"> | $Enums.OutboxStatus
+  processingAt?: Prisma.DateTimeNullableWithAggregatesFilter<"OutboxEvent"> | Date | string | null
+  retryCount?: Prisma.IntWithAggregatesFilter<"OutboxEvent"> | number
+  lastError?: Prisma.StringNullableWithAggregatesFilter<"OutboxEvent"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"OutboxEvent"> | Date | string
   publishedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"OutboxEvent"> | Date | string | null
 }
@@ -238,6 +322,10 @@ export type OutboxEventCreateInput = {
   eventId: string
   eventType: string
   payload: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  status?: $Enums.OutboxStatus
+  processingAt?: Date | string | null
+  retryCount?: number
+  lastError?: string | null
   createdAt?: Date | string
   publishedAt?: Date | string | null
 }
@@ -247,6 +335,10 @@ export type OutboxEventUncheckedCreateInput = {
   eventId: string
   eventType: string
   payload: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  status?: $Enums.OutboxStatus
+  processingAt?: Date | string | null
+  retryCount?: number
+  lastError?: string | null
   createdAt?: Date | string
   publishedAt?: Date | string | null
 }
@@ -256,6 +348,10 @@ export type OutboxEventUpdateInput = {
   eventId?: Prisma.StringFieldUpdateOperationsInput | string
   eventType?: Prisma.StringFieldUpdateOperationsInput | string
   payload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  status?: Prisma.EnumOutboxStatusFieldUpdateOperationsInput | $Enums.OutboxStatus
+  processingAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -265,6 +361,10 @@ export type OutboxEventUncheckedUpdateInput = {
   eventId?: Prisma.StringFieldUpdateOperationsInput | string
   eventType?: Prisma.StringFieldUpdateOperationsInput | string
   payload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  status?: Prisma.EnumOutboxStatusFieldUpdateOperationsInput | $Enums.OutboxStatus
+  processingAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -274,6 +374,10 @@ export type OutboxEventCreateManyInput = {
   eventId: string
   eventType: string
   payload: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  status?: $Enums.OutboxStatus
+  processingAt?: Date | string | null
+  retryCount?: number
+  lastError?: string | null
   createdAt?: Date | string
   publishedAt?: Date | string | null
 }
@@ -283,6 +387,10 @@ export type OutboxEventUpdateManyMutationInput = {
   eventId?: Prisma.StringFieldUpdateOperationsInput | string
   eventType?: Prisma.StringFieldUpdateOperationsInput | string
   payload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  status?: Prisma.EnumOutboxStatusFieldUpdateOperationsInput | $Enums.OutboxStatus
+  processingAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -292,6 +400,10 @@ export type OutboxEventUncheckedUpdateManyInput = {
   eventId?: Prisma.StringFieldUpdateOperationsInput | string
   eventType?: Prisma.StringFieldUpdateOperationsInput | string
   payload?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  status?: Prisma.EnumOutboxStatusFieldUpdateOperationsInput | $Enums.OutboxStatus
+  processingAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  retryCount?: Prisma.IntFieldUpdateOperationsInput | number
+  lastError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   publishedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -301,14 +413,26 @@ export type OutboxEventCountOrderByAggregateInput = {
   eventId?: Prisma.SortOrder
   eventType?: Prisma.SortOrder
   payload?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  processingAt?: Prisma.SortOrder
+  retryCount?: Prisma.SortOrder
+  lastError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
+}
+
+export type OutboxEventAvgOrderByAggregateInput = {
+  retryCount?: Prisma.SortOrder
 }
 
 export type OutboxEventMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   eventId?: Prisma.SortOrder
   eventType?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  processingAt?: Prisma.SortOrder
+  retryCount?: Prisma.SortOrder
+  lastError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
 }
@@ -317,12 +441,36 @@ export type OutboxEventMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   eventId?: Prisma.SortOrder
   eventType?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  processingAt?: Prisma.SortOrder
+  retryCount?: Prisma.SortOrder
+  lastError?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   publishedAt?: Prisma.SortOrder
 }
 
+export type OutboxEventSumOrderByAggregateInput = {
+  retryCount?: Prisma.SortOrder
+}
+
+export type EnumOutboxStatusFieldUpdateOperationsInput = {
+  set?: $Enums.OutboxStatus
+}
+
 export type NullableDateTimeFieldUpdateOperationsInput = {
   set?: Date | string | null
+}
+
+export type IntFieldUpdateOperationsInput = {
+  set?: number
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
+export type NullableStringFieldUpdateOperationsInput = {
+  set?: string | null
 }
 
 
@@ -332,6 +480,10 @@ export type OutboxEventSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   eventId?: boolean
   eventType?: boolean
   payload?: boolean
+  status?: boolean
+  processingAt?: boolean
+  retryCount?: boolean
+  lastError?: boolean
   createdAt?: boolean
   publishedAt?: boolean
 }, ExtArgs["result"]["outboxEvent"]>
@@ -341,6 +493,10 @@ export type OutboxEventSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   eventId?: boolean
   eventType?: boolean
   payload?: boolean
+  status?: boolean
+  processingAt?: boolean
+  retryCount?: boolean
+  lastError?: boolean
   createdAt?: boolean
   publishedAt?: boolean
 }, ExtArgs["result"]["outboxEvent"]>
@@ -350,6 +506,10 @@ export type OutboxEventSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   eventId?: boolean
   eventType?: boolean
   payload?: boolean
+  status?: boolean
+  processingAt?: boolean
+  retryCount?: boolean
+  lastError?: boolean
   createdAt?: boolean
   publishedAt?: boolean
 }, ExtArgs["result"]["outboxEvent"]>
@@ -359,11 +519,15 @@ export type OutboxEventSelectScalar = {
   eventId?: boolean
   eventType?: boolean
   payload?: boolean
+  status?: boolean
+  processingAt?: boolean
+  retryCount?: boolean
+  lastError?: boolean
   createdAt?: boolean
   publishedAt?: boolean
 }
 
-export type OutboxEventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "eventId" | "eventType" | "payload" | "createdAt" | "publishedAt", ExtArgs["result"]["outboxEvent"]>
+export type OutboxEventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "eventId" | "eventType" | "payload" | "status" | "processingAt" | "retryCount" | "lastError" | "createdAt" | "publishedAt", ExtArgs["result"]["outboxEvent"]>
 
 export type $OutboxEventPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "OutboxEvent"
@@ -373,6 +537,10 @@ export type $OutboxEventPayload<ExtArgs extends runtime.Types.Extensions.Interna
     eventId: string
     eventType: string
     payload: runtime.JsonValue
+    status: $Enums.OutboxStatus
+    processingAt: Date | null
+    retryCount: number
+    lastError: string | null
     createdAt: Date
     publishedAt: Date | null
   }, ExtArgs["result"]["outboxEvent"]>
@@ -802,6 +970,10 @@ export interface OutboxEventFieldRefs {
   readonly eventId: Prisma.FieldRef<"OutboxEvent", 'String'>
   readonly eventType: Prisma.FieldRef<"OutboxEvent", 'String'>
   readonly payload: Prisma.FieldRef<"OutboxEvent", 'Json'>
+  readonly status: Prisma.FieldRef<"OutboxEvent", 'OutboxStatus'>
+  readonly processingAt: Prisma.FieldRef<"OutboxEvent", 'DateTime'>
+  readonly retryCount: Prisma.FieldRef<"OutboxEvent", 'Int'>
+  readonly lastError: Prisma.FieldRef<"OutboxEvent", 'String'>
   readonly createdAt: Prisma.FieldRef<"OutboxEvent", 'DateTime'>
   readonly publishedAt: Prisma.FieldRef<"OutboxEvent", 'DateTime'>
 }

@@ -29,8 +29,8 @@ export class RabbitmqPublisherService
       );
 
     /*
-     * Creamos un ConfirmChannel
-     * en lugar de un Channel normal.
+     * Usamos ConfirmChannel para poder
+     * esperar la confirmación de RabbitMQ.
      */
     this.channel =
       await this.connection.createConfirmChannel();
@@ -48,48 +48,11 @@ export class RabbitmqPublisherService
     );
   }
 
-  publish<T>(
-    eventType: string,
-    data: T,
-  ) {
-    console.log(
-      '📤 Payment publicando:',
-      eventType,
-      data,
-    );
-
-    const event = {
-      eventId:
-        crypto.randomUUID(),
-
-      eventType,
-
-      version: 1,
-
-      occurredAt:
-        new Date().toISOString(),
-
-      data,
-    };
-
-    const message =
-      Buffer.from(
-        JSON.stringify(event),
-      );
-
-    this.channel.publish(
-      this.exchange,
-      eventType,
-      message,
-      {
-        persistent: true,
-
-        contentType:
-          'application/json',
-      },
-    );
-  }
-
+  /*
+   * Publisher utilizado por el Outbox.
+   *
+   * Esperamos confirmación de RabbitMQ.
+   */
   publishRaw(
     eventType: string,
     payload: unknown,
@@ -99,9 +62,23 @@ export class RabbitmqPublisherService
       eventType,
     );
 
-    const message =
+    /*
+     * Nest necesita recibir:
+     *
+     * {
+     *   pattern: 'payment.completed',
+     *   data: ...
+     * }
+     */
+    const message = {
+      pattern: eventType,
+
+      data: payload,
+    };
+
+    const buffer =
       Buffer.from(
-        JSON.stringify(payload),
+        JSON.stringify(message),
       );
 
     return new Promise(
@@ -109,7 +86,7 @@ export class RabbitmqPublisherService
         this.channel.publish(
           this.exchange,
           eventType,
-          message,
+          buffer,
           {
             persistent: true,
 

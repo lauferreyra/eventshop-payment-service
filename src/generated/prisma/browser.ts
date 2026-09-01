@@ -27,3 +27,8 @@ export type ProcessedEvent = Prisma.ProcessedEventModel
  * 
  */
 export type OutboxEvent = Prisma.OutboxEventModel
+/**
+ * Model Payment
+ * 
+ */
+export type Payment = Prisma.PaymentModel

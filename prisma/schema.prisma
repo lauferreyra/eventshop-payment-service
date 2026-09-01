@@ -17,12 +17,43 @@ model ProcessedEvent {
 }
 
 model OutboxEvent {
-  id          String    @id @default(uuid())
-  eventId     String    @unique
-  eventType   String
-  payload     Json
-  createdAt   DateTime  @default(now())
-  publishedAt DateTime?
+  id           String       @id @default(uuid())
+  eventId      String       @unique
+  eventType    String
+  payload      Json
+
+  status       OutboxStatus @default(PENDING)
+
+  processingAt DateTime?
+  retryCount   Int          @default(0)
+  lastError    String?
+
+  createdAt    DateTime     @default(now())
+  publishedAt  DateTime?
 
   @@map("outbox_events")
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  PUBLISHED
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  orderId   String        @unique
+  amount    Decimal
+  status    PaymentStatus @default(PENDING)
+
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
 }

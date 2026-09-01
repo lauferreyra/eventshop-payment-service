@@ -1,5 +1,4 @@
 import { Controller } from '@nestjs/common';
-
 import {
   Ctx,
   EventPattern,
@@ -9,13 +8,13 @@ import {
 
 import { randomUUID } from 'crypto';
 
-import { PrismaService } from './prisma/prisma.service.js';
-import { RabbitmqPublisherService } from './rabbitmq/rabbitmq-publisher.service.js';
 import { EventEnvelope } from './events/event-envelope.js';
+import { PrismaService } from './prisma/prisma.service.js';
 
 type InventoryReservedEvent = {
   orderId: string;
   quantity: number;
+  unitPrice: number;
 };
 
 type InventoryReservedEnvelope =
@@ -24,8 +23,6 @@ type InventoryReservedEnvelope =
 @Controller()
 export class AppController {
   constructor(
-    private readonly rabbitmqPublisher:
-      RabbitmqPublisherService,
 
     private readonly prisma:
       PrismaService,
@@ -33,8 +30,11 @@ export class AppController {
 
   @EventPattern('inventory.reserved')
   async handleInventoryReserved(
-    @Payload() event: InventoryReservedEnvelope,
-    @Ctx() context: any,
+    @Payload()
+    inventory: InventoryReservedEnvelope,
+
+    @Ctx()
+    context: any,
   ) {
     const rmqContext =
       context as RmqContext;
@@ -50,129 +50,201 @@ export class AppController {
         '💳 Payment recibió inventory.reserved',
       );
 
-      console.log(event);
+      console.log(inventory);
 
-      /*
-       * 1. Registrar el evento recibido
-       *    y crear el evento de salida
-       *    dentro de la misma transacción.
-       */
-      let paymentEvent:
-        | {
-            eventId: string;
-            eventType: string;
-            version: number;
-            occurredAt: string;
-            data: {
-              orderId: string;
-              reason?: string;
-            };
-          }
-        | undefined;
+      const result =
+        await this.prisma.$transaction(
+          async (tx) => {
+            /*
+             * 1. Verificar idempotencia
+             *
+             * Si este evento ya fue procesado,
+             * no volvemos a crear el Payment.
+             */
+            const processedEvent =
+              await tx.processedEvent.findUnique({
+                where: {
+                  eventId:
+                    inventory.eventId,
+                },
+              });
 
-      await this.prisma.$transaction(
-        async (tx) => {
-          /*
-           * Idempotencia:
-           * intentamos registrar el eventId recibido.
-           */
-          try {
-            await tx.processedEvent.create({
-              data: {
-                eventId: event.eventId,
-                eventType: event.eventType,
-              },
-            });
-          } catch (error: any) {
-            if (error.code === 'P2002') {
+            if (processedEvent) {
               console.log(
-                '⚠️ Evento duplicado. Ignorando:',
-                event.eventId,
+                '⚠️ Evento ya procesado:',
+                inventory.eventId,
               );
 
-              return;
+              return {
+                alreadyProcessed: true,
+              };
             }
 
-            throw error;
-          }
+            /*
+             * 2. Calcular importe
+             */
+            const amount =
+              inventory.data.quantity *
+              inventory.data.unitPrice;
 
-          /*
-           * Procesamiento del pago
-           */
-          const paymentApproved =
-            event.data.quantity <= 2;
-
-          if (paymentApproved) {
             console.log(
-              '✅ Pago aprobado',
+              '💰 Importe calculado:',
+              amount,
             );
-          } else {
-            console.log(
-              '❌ Pago rechazado',
-            );
-          }
 
-          /*
-           * Crear evento que posteriormente
-           * será publicado por el Outbox Publisher.
-           */
-          paymentEvent = {
-            eventId: randomUUID(),
+            /*
+             * 3. Simular aprobación/rechazo
+             *
+             * Hasta 2 unidades → aprobado
+             * Más de 2 → rechazado
+             */
+            const paymentApproved =
+              inventory.data.quantity <= 2;
 
-            eventType: paymentApproved
-              ? 'payment.completed'
-              : 'payment.failed',
+            const paymentStatus =
+              paymentApproved
+                ? 'COMPLETED'
+                : 'FAILED';
 
-            version: 1,
-
-            occurredAt:
-              new Date().toISOString(),
-
-            data: paymentApproved
-              ? {
+            /*
+             * 4. Crear Payment
+             */
+            const payment =
+              await tx.payment.create({
+                data: {
                   orderId:
-                    event.data.orderId,
-                }
-              : {
-                  orderId:
-                    event.data.orderId,
+                    inventory.data.orderId,
 
-                  reason:
-                    'PAYMENT_REJECTED',
+                  amount,
+
+                  status:
+                    paymentStatus,
                 },
-          };
+              });
 
-          /*
-           * Guardar evento en Outbox.
-           */
-          await tx.outboxEvent.create({
-            data: {
-              eventId:
-                paymentEvent.eventId,
+            console.log(
+              '💳 Payment guardado:',
+              payment.id,
+            );
 
-              eventType:
-                paymentEvent.eventType,
+            /*
+             * 5. Determinar evento de salida
+             */
+            const eventType =
+              paymentApproved
+                ? 'payment.completed'
+                : 'payment.failed';
 
-              payload: paymentEvent,
-            },
-          });
+            const eventData =
+              paymentApproved
+                ? {
+                    orderId:
+                      inventory.data.orderId,
+                  }
+                : {
+                    orderId:
+                      inventory.data.orderId,
 
-          console.log(
-            '📦 Evento guardado en Outbox:',
-            paymentEvent.eventType,
-          );
-        },
-      );
+                    reason:
+                      'PAYMENT_REJECTED',
+                  };
+
+            /*
+             * 6. Generar UN SOLO eventId
+             *
+             * Este mismo ID será utilizado:
+             *
+             * OutboxEvent.eventId
+             * payload.eventId
+             */
+            const eventId =
+              randomUUID();
+
+            /*
+             * 7. Crear OutboxEvent
+             */
+            await tx.outboxEvent.create({
+              data: {
+                eventId,
+
+                eventType,
+
+                payload: {
+                  eventId,
+
+                  eventType,
+
+                  version: 1,
+
+                  occurredAt:
+                    new Date().toISOString(),
+
+                  data: eventData,
+                },
+
+                status: 'PENDING',
+              },
+            });
+
+            console.log(
+              '📦 Evento guardado en Outbox:',
+              eventType,
+            );
+
+            /*
+             * 8. Registrar evento procesado
+             *
+             * El eventId recibido desde Inventory
+             * queda registrado para evitar
+             * procesamiento duplicado.
+             */
+            await tx.processedEvent.create({
+              data: {
+                eventId:
+                  inventory.eventId,
+
+                eventType:
+                  inventory.eventType,
+              },
+            });
+
+            console.log(
+              '🆔 Evento registrado:',
+              inventory.eventId,
+            );
+
+            return {
+              alreadyProcessed: false,
+            };
+          },
+        );
 
       /*
-       * La transacción terminó correctamente.
+       * Si ya había sido procesado,
+       * simplemente confirmamos el mensaje.
+       */
+      if (result.alreadyProcessed) {
+        channel.ack(message);
+
+        return;
+      }
+
+      /*
+       * Si llegamos acá significa que:
+       *
+       * Payment ✅
+       * Outbox ✅
+       * ProcessedEvent ✅
+       *
+       * Todo dentro de la misma transaction.
        */
       console.log(
         '✅ Transaction COMMIT',
       );
 
       /*
-       * ACK solamente después del COMMIT.
+       * El Outbox Publisher será responsable
+       * de publicar payment.completed/payment.failed.
        */
       channel.ack(message);
     } catch (error) {
@@ -182,8 +254,14 @@ export class AppController {
       );
 
       /*
-       * El mensaje vuelve al flujo de
-       * error/retry de RabbitMQ.
+       * Rechazamos el mensaje.
+       *
+       * false = no requeue
+       * false = no multiple
+       *
+       * Nuestro sistema de retry de RabbitMQ
+       * se encargará del flujo correspondiente
+       * si está configurado para esta cola.
        */
       channel.nack(
         message,
