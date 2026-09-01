@@ -1,10 +1,26 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 
 import { AppController } from './app.controller.js';
+import { PrismaModule } from './prisma/prisma.module.js';
 import { RabbitmqModule } from './rabbitmq/rabbitmq.module.js';
+import { OutboxModule } from './outbox/outbox.module.js';
 
 @Module({
-  imports: [RabbitmqModule],
-  controllers: [AppController],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+
+    PrismaModule,
+
+    RabbitmqModule,
+
+    OutboxModule,
+  ],
+
+  controllers: [
+    AppController,
+  ],
 })
 export class AppModule {}

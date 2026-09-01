@@ -5,9 +5,10 @@ import { RabbitmqTopologyService } from './rabbitmq-topology.service.js';
 
 @Module({
   providers: [
-    RabbitmqTopologyService,
     RabbitmqPublisherService,
+    RabbitmqTopologyService,
   ],
+
   exports: [
     RabbitmqPublisherService,
   ],

@@ -4,11 +4,10 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 
-import { randomUUID } from 'crypto';
-
 import * as amqp from 'amqplib';
+
 import {
-  Channel,
+  ConfirmChannel,
   ChannelModel,
 } from 'amqplib';
 
@@ -17,18 +16,24 @@ export class RabbitmqPublisherService
   implements OnModuleInit, OnModuleDestroy
 {
   private connection: ChannelModel;
-  private channel: Channel;
+
+  private channel: ConfirmChannel;
 
   private readonly exchange =
     'eventshop.events';
 
   async onModuleInit() {
-    this.connection = await amqp.connect(
-      'amqp://admin:admin@localhost:5672',
-    );
+    this.connection =
+      await amqp.connect(
+        'amqp://admin:admin@localhost:5672',
+      );
 
+    /*
+     * Creamos un ConfirmChannel
+     * en lugar de un Channel normal.
+     */
     this.channel =
-      await this.connection.createChannel();
+      await this.connection.createConfirmChannel();
 
     await this.channel.assertExchange(
       this.exchange,
@@ -54,20 +59,23 @@ export class RabbitmqPublisherService
     );
 
     const event = {
-      eventId: randomUUID(),
+      eventId:
+        crypto.randomUUID(),
+
       eventType,
+
       version: 1,
+
       occurredAt:
         new Date().toISOString(),
+
       data,
     };
 
-    const message = Buffer.from(
-      JSON.stringify({
-        pattern: eventType,
-        data: event,
-      }),
-    );
+    const message =
+      Buffer.from(
+        JSON.stringify(event),
+      );
 
     this.channel.publish(
       this.exchange,
@@ -75,14 +83,67 @@ export class RabbitmqPublisherService
       message,
       {
         persistent: true,
+
         contentType:
           'application/json',
       },
     );
   }
 
+  publishRaw(
+    eventType: string,
+    payload: unknown,
+  ): Promise<void> {
+    console.log(
+      '📤 Outbox publicando:',
+      eventType,
+    );
+
+    const message =
+      Buffer.from(
+        JSON.stringify(payload),
+      );
+
+    return new Promise(
+      (resolve, reject) => {
+        this.channel.publish(
+          this.exchange,
+          eventType,
+          message,
+          {
+            persistent: true,
+
+            contentType:
+              'application/json',
+          },
+
+          (error) => {
+            if (error) {
+              console.error(
+                '❌ RabbitMQ rechazó el mensaje',
+                error,
+              );
+
+              reject(error);
+
+              return;
+            }
+
+            console.log(
+              '✅ RabbitMQ confirmó:',
+              eventType,
+            );
+
+            resolve();
+          },
+        );
+      },
+    );
+  }
+
   async onModuleDestroy() {
     await this.channel?.close();
+
     await this.connection?.close();
   }
 }
