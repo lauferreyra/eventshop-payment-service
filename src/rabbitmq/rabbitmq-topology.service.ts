@@ -15,18 +15,24 @@ export class RabbitmqTopologyService
   private channel: Channel;
 
   async onModuleInit() {
-    this.connection = await amqp.connect(
-      'amqp://admin:admin@localhost:5672',
+  const rabbitmqUrl =
+    process.env.RABBITMQ_URL ??
+    'amqp://admin:admin@localhost:5672';
+
+  this.connection =
+    await amqp.connect(
+      rabbitmqUrl,
     );
 
-    this.channel = await this.connection.createChannel();
+  this.channel =
+    await this.connection.createChannel();
 
-    await this.createTopology();
+  await this.createTopology();
 
     console.log(
       '✅ Topología RabbitMQ de Payment configurada',
     );
-  }
+}
 
   private async createTopology() {
     await this.channel.assertExchange(

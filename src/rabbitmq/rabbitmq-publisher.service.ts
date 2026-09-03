@@ -22,12 +22,16 @@ export class RabbitmqPublisherService
   private readonly exchange =
     'eventshop.events';
 
-  async onModuleInit() {
+    async onModuleInit() {
+    const rabbitmqUrl =
+      process.env.RABBITMQ_URL ??
+      'amqp://admin:admin@localhost:5672';
+  
     this.connection =
       await amqp.connect(
-        'amqp://admin:admin@localhost:5672',
+        rabbitmqUrl,
       );
-
+  
     /*
      * Usamos ConfirmChannel para poder
      * esperar la confirmación de RabbitMQ.
