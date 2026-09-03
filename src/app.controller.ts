@@ -178,7 +178,8 @@ export class AppController {
 
                   occurredAt:
                     new Date().toISOString(),
-
+                  correlationId:
+                          inventory.correlationId,
                   data: eventData,
                 },
 
